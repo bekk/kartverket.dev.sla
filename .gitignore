@@ -28,6 +28,8 @@ node_modules/
 
 # dotenv environment variables file
 .env
+k8s/secrets/*.env
+!k8s/secrets/*.env.example
 
 # Build output
 dist

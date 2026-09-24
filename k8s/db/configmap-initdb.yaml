@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-postgres-initdb
+  namespace: ns-backstage-db
+  labels:
+    app.kubernetes.io/part-of: postgres
+data:
+  01-init-backstage-db.sql: |
+    \getenv backstage_pwd APP_DB_PASSWORD
+    
+    CREATE ROLE backstage LOGIN PASSWORD :'backstage_pwd';
+    CREATE DATABASE backstage OWNER backstage;
+
+    REVOKE CONNECT ON DATABASE backstage FROM PUBLIC;
