@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-backstage
+  namespace: ns-backstage
+data:
+  BASE_URL: "http://localhost:7007"
+  REGELRETT_BASEURL: "http://localhost"               # Se plugins/regelrett-schemas-backend/README.md
+  REGELRETT_CLIENT_ID: "not-configured"
+  SIKKERHETSMETRIKKER_CLIENT_ID: "not-configured"     # Se plugins/security-metrics-backend/README.md
