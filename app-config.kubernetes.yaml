@@ -53,6 +53,36 @@ sikkerhetsmetrikker:
   baseUrl: http://sikkerhetsmetrikker.sikkerhetsmetrikker-main:8080
   clientId: ${SIKKERHETSMETRIKKER_CLIENT_ID}
 
+catalog:
+  providers:
+    microsoftGraphOrg:
+      default:
+        tenantId: ${ENTRA_TENANT_ID}
+        queryMode: 'advanced'
+        user:
+          filter: accountEnabled eq true and userType eq 'member' and startsWith(companyName, 'Staten')
+          select:
+            [
+              'accountEnabled',
+              'displayName',
+              'givenName',
+              'id',
+              'mail',
+              'mailNickname',
+              'userPrincipalName',
+              'surname',
+              'companyName',
+              'userType',
+            ]
+        group:
+          filter: >
+            startswith(displayName, 'AAD - TF - TEAM') or startswith(displayName, 'AAD - TF - BUSINESS UNIT') or startswith(displayName, 'AAD - TF - PRODUCT AREA')
+        schedule:
+          frequency: PT1H
+          timeout: PT50M
+        clientId: ${ENTRA_ID_SP_APP_ID}
+        clientSecret: ${ENTRA_ID_SP_CLIENT_SECRET}
+
 ros:
   sops:
     ageKey: dummy
