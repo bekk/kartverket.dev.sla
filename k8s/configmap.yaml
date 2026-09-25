@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: config-backstage
-  namespace: ns-backstage
-data:
-  BASE_URL: "http://localhost:7007"
-  REGELRETT_BASEURL: "http://localhost:8080"               # Se plugins/regelrett-schemas-backend/README.md

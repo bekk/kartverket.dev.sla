@@ -1,0 +1,66 @@
+# Minimal overlay for a DB-only smoke test of the app in ns-backstage on GKE.
+# Loaded instead of app-config.production.yaml until auth/integrations are wired up:
+# --config app-config.yaml --config app-config.kubernetes.yaml
+app:
+  baseUrl: ${BASE_URL}
+
+backend:
+  baseUrl: ${BASE_URL}
+  listen:
+    port: 7007
+
+  # config options: https://node-postgres.com/api/client
+  database:
+    client: pg
+    connection:
+      database: ${POSTGRES_DB}
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+    # The init SQL only creates a single "backstage" database/role (no CREATEDB
+    # privilege), so plugins must share it via per-plugin schemas rather than
+    # each trying to CREATE DATABASE.
+    pluginDivisionMode: schema
+
+cors:
+  origin: ${BASE_URL}
+
+# security-metrics-backend and regelrett-schemas-backend both read auth.environment
+# and auth.providers.microsoft.<environment>.* eagerly at startup (not just for the
+# Microsoft sign-in flow), so this is required even before anyone signs in.
+auth:
+  environment: development
+  providers:
+    microsoft:
+      development:
+        clientId: ${ENTRA_WEB_APP_ID}
+        clientSecret: ${ENTRA_WEB_CLIENT_SECRET}
+        tenantId: ${ENTRA_TENANT_ID}
+
+regelrett:
+  enable: true
+  baseUrl: http://service-regelrett.ns-regelrett.svc.cluster.local
+  # TODO: no externally-reachable URL exists for regelrett yet (no Ingress on
+  # either app); reusing the in-cluster address as a placeholder for this
+  # required frontend-visibility field until one does.
+  url: http://service-regelrett.ns-regelrett.svc.cluster.local
+  clientId: ${REGELRETT_CLIENT_ID}
+
+
+sikkerhetsmetrikker:
+  enable: true
+  baseUrl: http://sikkerhetsmetrikker.sikkerhetsmetrikker-main:8080
+  clientId: ${SIKKERHETSMETRIKKER_CLIENT_ID}
+
+ros:
+  sops:
+    ageKey: dummy
+    backendPublicKey: dummy
+    securityTeamPublicKey: dummy
+    securityPlatformPublicKey: dummy
+  slack:
+    webhookUrl: dummy
+  initRiSc:
+    repoOwner: kartverket
+    repoName: initial-riscs-collection

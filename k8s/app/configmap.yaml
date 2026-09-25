@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-backstage-app-config
+  name: config-backstage
   namespace: ns-backstage
 data:
   # Lastes sist av deployment-en, så verdiene her overstyrer app-config.production.yaml.
