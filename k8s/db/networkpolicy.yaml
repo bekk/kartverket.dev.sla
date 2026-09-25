@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: netpol-default-deny-ingress
+  namespace: ns-backstage-db
+  labels:
+    app.kubernetes.io/part-of: postgres
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: netpol-allow-backstage-to-postgres
+  namespace: ns-backstage-db
+  labels:
+    app.kubernetes.io/part-of: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ns-backstage
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: backstage
+      ports:
+        - protocol: TCP
+          port: 5432

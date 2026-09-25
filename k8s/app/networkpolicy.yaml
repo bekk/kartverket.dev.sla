@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: netpol-default-deny-ingress
+  namespace: ns-backstage
+  labels:
+    app.kubernetes.io/part-of: backstage
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress

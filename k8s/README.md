@@ -59,11 +59,13 @@ Apply manifester
 kubectl apply -f k8s/db/namespace.yaml
 kubectl apply -f k8s/db/configmap-initdb.yaml
 kubectl apply -f k8s/db/postgres.yaml
+kubectl apply -f k8s/db/networkpolicy.yaml
 
 # App — namespace/service first, deployment uses whatever image was last `kubectl set image`'d
 kubectl apply -f k8s/app/namespace.yaml
 kubectl apply -f k8s/app/service.yaml
 kubectl apply -f k8s/app/deployment.yaml
+kubectl apply -f k8s/app/networkpolicy.yaml
 ```
 
 Build and push image
@@ -97,3 +99,33 @@ Then smoke-test with a port-forward (matches the `BASE_URL=http://localhost:7007
 ```sh
 kubectl port-forward -n ns-backstage svc/service-backstage 7007:7007
 ```
+
+## NetworkPolicy
+
+`k8s/app/networkpolicy.yaml` is a plain default-deny-ingress on `ns-backstage` (no allow
+rule needed — the only access path today is `kubectl port-forward`, which tunnels through
+the API server/kubelet and isn't affected by ingress NetworkPolicy).
+
+`k8s/db/networkpolicy.yaml` (`ns-backstage-db`) is default-deny-ingress plus one rule
+allowing only pods labeled `app.kubernetes.io/name: backstage` in `ns-backstage`, on port
+5432. This cluster enforces `NetworkPolicy` natively (GKE Dataplane V2 —
+`datapathProvider: ADVANCED_DATAPATH`), so this isn't inert.
+
+**Known weakness**: the allow rule's `podSelector` must stay in sync with the pod label in
+`k8s/app/deployment.yaml`. If it drifts, default-deny silently drops the traffic and
+Postgres becomes unreachable from the app — surfacing as a **connection timeout**, not
+"connection refused" or an auth error, which is easy to misdiagnose as a network/DNS issue
+rather than a stale label. This isn't hypothetical: the sibling project `Regelrett.sla` hit
+exactly this (wrong pod label in its own DB-allow rule, fixed in a later commit). Unlike
+Regelrett.sla's Postgres (`POSTGRES_HOST_AUTH_METHOD: trust`), this one already requires a
+real password (`secret-backstage-postgres`) — so this NetworkPolicy is defense-in-depth here,
+narrowing *reachability*, not the only thing standing between an attacker and the database.
+
+**Cross-repo dependency**: `regelrett.baseUrl` in `app-config.kubernetes.yaml` points
+Backstage at `service-regelrett.ns-regelrett.svc.cluster.local`. `Regelrett.sla`'s own
+`k8s/networkpolicy.yaml` (`ns-regelrett`) is default-deny-ingress with **no allow rule at
+all**, confirmed live on the cluster — so that call is currently blocked. Fixing this needs a
+new allow rule in the `Regelrett.sla` repo (not this one), permitting ingress from
+`ns-backstage`'s `app.kubernetes.io/name: backstage` pods to Regelrett's pod on port `8080`
+(its real container port — the Service listens on 80 but forwards to `containerPort: 8080`,
+and NetworkPolicy matches on the pod's real port, not the Service's).
