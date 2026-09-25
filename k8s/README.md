@@ -7,9 +7,9 @@ Two namespaces:
 
 This is currently a **smoke test**: the app is deployed with `app-config.kubernetes.yaml` (loaded
 instead of `app-config.production.yaml`), which wires up the database, an Entra ID app registration
-(shared by sign-in, regelrett-schemas, and security-metrics), and regelrett — all pointed at what
-actually exists in this cluster/tenant. Google/GitHub sign-in and the other integrations in
-`app-config.production.yaml` are not configured yet. `sikkerhetsmetrikker.baseUrl` is a known gap:
+(shared by sign-in, the Graph catalog sync, regelrett-schemas, and security-metrics), and regelrett
+— all pointed at what actually exists in this cluster/tenant. Google/GitHub sign-in and the other
+integrations in `app-config.production.yaml` are not configured yet. `sikkerhetsmetrikker.baseUrl` is a known gap:
 `security-metrics-backend` requires it at startup too, but there's no `sikkerhetsmetrikker` service
 in this cluster to point it at.
 
@@ -38,10 +38,11 @@ Secrets are not committed. Copy each `*.env.example` in `k8s/secrets/` to a same
      --from-env-file k8s/secrets/backstage-db.env
    ```
 
-3. **`auth.env`** (from `auth.env.example`) — the Entra ID (Azure AD) app registration used both
-   for Microsoft sign-in and for the service-to-service calls `regelrett-schemas-backend` and
-   `security-metrics-backend` make eagerly at startup (not just when someone signs in — omitting
-   these blocks the backend from ever becoming ready), plus regelrett's own client ID.
+3. **`auth.env`** (from `auth.env.example`) — the Entra ID (Azure AD) app registration used for
+   Microsoft sign-in, the Graph catalog sync, and the service-to-service calls `regelrett-schemas-backend`
+   and `security-metrics-backend` make eagerly at startup, plus the plugins' client IDs and `GITHUB_TOKEN`.
+   The Graph sync uses `ENTRA_TENANT_ID`, so the app needs Graph permissions (`User.Read.All`,
+   `GroupMember.Read.All`) in that tenant.
 
    ```sh
    kubectl create secret generic secret-backstage-auth \
