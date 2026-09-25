@@ -28,7 +28,20 @@ spec:
           type: RuntimeDefault
       containers:
         - name: spire-backstage
-          image: replaced-at-deploy
+          image: europe-north1-docker.pkg.dev/gcp-fleks-grafanaslo/spire-grafana-slo/backstage:20260925-1100-1a7fd7d
+          # Erstatter CMD i Dockerfile: 
+          # app-config.runtime.yaml er byttet ut med app-config.gke.yaml
+          # Grunn: runtime fila krever filer som ikke finnes på GKE.
+          args:
+            - --require
+            - ./instrumentation.js
+            - packages/backend
+            - --config
+            - app-config.yaml
+            - --config
+            - app-config.production.yaml
+            - --config
+            - /app/config/app-config.gke.yaml
           ports:
             - name: http
               containerPort: 7007
@@ -54,6 +67,12 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: app-config
+              mountPath: /app/config
+              readOnly: true
+            - name: github-app-placeholder
+              mountPath: /app/github-secrets
+              readOnly: true
           startupProbe:
             httpGet:
               path: /.backstage/health/v1/readiness
@@ -76,3 +95,15 @@ spec:
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: app-config
+          configMap:
+            name: config-backstage-app-config
+            items:
+              - key: app-config.gke.yaml
+                path: app-config.gke.yaml
+        - name: github-app-placeholder
+          configMap:
+            name: config-backstage-app-config
+            items:
+              - key: github-app-placeholder.yaml
+                path: github-app-backstage-skip-credentials.yaml
