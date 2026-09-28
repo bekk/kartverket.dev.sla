@@ -53,6 +53,9 @@ site
 #intellij
 .idea
 
+# Claude Code local settings
+.claude/
+
 #sqlite
 *.sqlite
 *.sqlite-journal

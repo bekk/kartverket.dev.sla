@@ -1,0 +1,52 @@
+name: Tester
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sjekk ut repoet
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Sett opp Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x # From mise.toml
+          cache: 'npm'
+
+      - name: Aktiver corepack
+        run: corepack enable
+
+      - name: Installer avhengigheter
+        run: yarn install --immutable
+
+      - name: Prettier-sjekk
+        run: yarn run prettier:check
+
+      - name: Typesjekk
+        run: yarn run tsc
+
+      - name: Lint
+        run: yarn run lint:all
+
+      - name: JS-tester
+        run: yarn backstage-cli repo test
+
+      # Fanger en ødelagt manifest før deployen, ikke under. Skjemavalidering
+      # (feil apiVersion, manglende påkrevde felt osv.) - forretningslogikken
+      # under (plassholder, forventede kinds) er ikke noe kubeconform sjekker.
+      - name: Sett opp Kubeconform
+        uses: bmuschko/setup-kubeconform@v1
+        with:
+          kubeconform-version: '0.8.0'
+
+      - name: Schema-valider k8s-manifestene
+        run: kubeconform -strict -summary k8s/app k8s/db
