@@ -12,3 +12,7 @@ dist-types
 
 # VSCode extension that backup files.
 .history/
+
+# Kubernetes manifests and cluster config - infra-owned, not app source.
+k8s/
+app-config.kubernetes.yaml

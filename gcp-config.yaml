@@ -1,0 +1,34 @@
+# Innstillinger for Backstage i Google Cloud.
+#
+# Rene konfigurasjonsverdier. Leses av workflowene i .github/workflows/ med yq,
+# slik at navn ikke hardkodes i YAML-en der. Se .github/README.md.
+app: backstage
+
+gcp:
+  project_id: gcp-fleks-grafanaslo
+  region: europe-north1
+  # Artifact Registry-repoet ble laget for spire-grafana-slo. Regelrett deler
+  # det, så repo-navnet er ikke det samme som app-navnet.
+  repo: spire-grafana-slo
+  # GKE Autopilot-klyngen deles med spire-grafana-slo.
+  cluster: spire-grafana-slo
+  latest_tag: latest
+
+# GKE-nodene er linux/amd64. Bygges imaget uten dette på en Apple Silicon-Mac,
+# krasjer podden med «exec format error».
+build:
+  platform: linux/amd64
+  dockerfile: packages/backend/Dockerfile
+  context: .
+
+kubernetes:
+  # Manifestene CI deployer ligger under k8s/app/. Databasen i k8s/db/ har
+  # egen livssyklus og deployes ikke herfra.
+  dir: k8s/app
+  namespace: ns-backstage
+  deployment: deployment-backstage
+  # Plassholderen i deployment.yaml som byttes ut med gjeldende image.
+  image_placeholder: IMAGE_PLACEHOLDER
+
+timeouts:
+  rollout: 5m

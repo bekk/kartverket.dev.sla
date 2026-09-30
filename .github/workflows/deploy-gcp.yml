@@ -1,0 +1,128 @@
+# Deploy Backstage til GCP (GKE Autopilot). Smoke test-miljø, ikke
+# produksjon - se k8s/README.md. Den ekte produksjonsappen (Kartverket.dev)
+# deployes fra oppstrøms-repoet kartverket/kartverket.dev, ikke herfra - dette
+# er en fork brukt kun til å bygge ut GCP-deployen.
+name: Deploy til GCP (backstage)
+
+on:
+  push:
+    branches: ['main']
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image-tag som skal deployes på nytt. Tom = bygg fra HEAD.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-gcp-backstage
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  deploy:
+    name: deploy
+    needs: test
+    runs-on: ubuntu-latest
+    environment: gcp-backstage
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Les konfigurasjon
+        id: cfg
+        run: |
+          set -euo pipefail
+          app=$(yq -r '.app' gcp-config.yaml)
+          region=$(yq -r '.gcp.region' gcp-config.yaml)
+          ar_repo=$(yq -r '.gcp.repo' gcp-config.yaml)
+          tag='${{ inputs.tag }}'
+          [ -n "$tag" ] || tag="${GITHUB_SHA:0:7}"
+          image="${region}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${ar_repo}/${app}"
+          {
+            echo "region=$region"
+            echo "cluster=$(yq -r '.gcp.cluster' gcp-config.yaml)"
+            echo "dockerfile=$(yq -r '.build.dockerfile' gcp-config.yaml)"
+            echo "context=$(yq -r '.build.context' gcp-config.yaml)"
+            echo "platform=$(yq -r '.build.platform' gcp-config.yaml)"
+            echo "k8s_dir=$(yq -r '.kubernetes.dir' gcp-config.yaml)"
+            echo "namespace=$(yq -r '.kubernetes.namespace' gcp-config.yaml)"
+            echo "deployment=$(yq -r '.kubernetes.deployment' gcp-config.yaml)"
+            echo "placeholder=$(yq -r '.kubernetes.image_placeholder' gcp-config.yaml)"
+            echo "rollout=$(yq -r '.timeouts.rollout' gcp-config.yaml)"
+            echo "tag=$tag"
+            echo "image=${image}:${tag}"
+            echo "image_latest=${image}:$(yq -r '.gcp.latest_tag' gcp-config.yaml)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          install_components: gke-gcloud-auth-plugin
+
+      - uses: azure/setup-kubectl@v5
+        with:
+          version: v1.36.1
+
+      - run: gcloud auth configure-docker '${{ steps.cfg.outputs.region }}-docker.pkg.dev' --quiet
+
+      - uses: docker/setup-buildx-action@v4
+        if: inputs.tag == ''
+
+      - name: Bygg og publiser imaget
+        if: inputs.tag == ''
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ steps.cfg.outputs.context }}
+          file: ${{ steps.cfg.outputs.dockerfile }}
+          platforms: ${{ steps.cfg.outputs.platform }}
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.cfg.outputs.image }}
+            ${{ steps.cfg.outputs.image_latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Hent kubectl-kontekst
+        run: |
+          gcloud container clusters get-credentials '${{ steps.cfg.outputs.cluster }}' \
+            --region '${{ steps.cfg.outputs.region }}' \
+            --project '${{ vars.GCP_PROJECT_ID }}'
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          kubectl apply -f '${{ steps.cfg.outputs.k8s_dir }}/namespace.yaml'
+          awk 'FNR==1 && NR>1 {print "---"} {print}' '${{ steps.cfg.outputs.k8s_dir }}'/*.yaml \
+            | sed "s|${{ steps.cfg.outputs.placeholder }}|${{ steps.cfg.outputs.image }}|g" \
+            | kubectl apply -f -
+          kubectl -n '${{ steps.cfg.outputs.namespace }}' rollout status \
+            'deployment/${{ steps.cfg.outputs.deployment }}' \
+            --timeout='${{ steps.cfg.outputs.rollout }}'
+
+      - name: Oppsummering
+        if: always()
+        run: |
+          {
+            echo "### Deploy til gcp-backstage"
+            echo
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Image | \`${{ steps.cfg.outputs.image }}\` |"
+            echo "| Commit | ${GITHUB_SHA} |"
+          } >> "$GITHUB_STEP_SUMMARY"
