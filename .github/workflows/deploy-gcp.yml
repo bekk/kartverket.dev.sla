@@ -8,14 +8,7 @@ on:
   push:
     branches: ['main']
     paths-ignore:
-      - README.md
-      - CONTRIBUTING.md
-      - CODEOWNERS
-      - 'docs/**'
-      - 'terraform/**'
-      - '.gitignore'
-      - 'mkdocs.yml'
-      - catalog-info.yaml
+      - '**/*.md'
   workflow_dispatch:
     inputs:
       tag:
