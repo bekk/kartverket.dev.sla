@@ -80,6 +80,25 @@ jobs:
 
       - run: gcloud auth configure-docker '${{ steps.cfg.outputs.region }}-docker.pkg.dev' --quiet
 
+      - name: Sett opp Node.js
+        if: inputs.tag == ''
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x # From mise.toml
+          cache: 'npm'
+
+      - name: Aktiver corepack
+        if: inputs.tag == ''
+        run: corepack enable
+
+      - name: Installer avhengigheter
+        if: inputs.tag == ''
+        run: yarn install --immutable
+
+      - name: Bygg backend-bundle
+        if: inputs.tag == ''
+        run: yarn build:backend
+
       - uses: docker/setup-buildx-action@v4
         if: inputs.tag == ''
 
