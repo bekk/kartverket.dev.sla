@@ -37,6 +37,10 @@ auth:
         clientId: ${ENTRA_WEB_APP_ID}
         clientSecret: ${ENTRA_WEB_CLIENT_SECRET}
         tenantId: ${ENTRA_TENANT_ID}
+    github:
+      development:
+        clientId: ${AUTH_GITHUB_CLIENT_ID}
+        clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
 
 regelrett:
   enable: true
