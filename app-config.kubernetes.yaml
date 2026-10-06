@@ -39,8 +39,8 @@ auth:
         tenantId: ${ENTRA_TENANT_ID}
     github:
       development:
-        clientId: ${AUTH_GITHUB_CLIENT_ID}
-        clientSecret: ${AUTH_GITHUB_CLIENT_SECRET}
+        clientId: ${RISC_GITHUB_APP_CLIENT_ID}
+        clientSecret: ${RISC_GITHUB_APP_CLIENT_SECRET}
 
 regelrett:
   enable: true
