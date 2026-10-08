@@ -47,7 +47,7 @@ Secrets are not committed. Copy each `*.env.example` in `k8s/secrets/` to a same
    `AUTH_GITHUB_CLIENT_ID`/`AUTH_GITHUB_CLIENT_SECRET` come from a GitHub **OAuth App** (a personal
    account is enough), used by `/catalog-creator` and the risk-scorecard plugin. Set homepage to
    `http://localhost:7007` and callback to `http://localhost:7007/api/auth/github/handler/frame`
-   (must match `BASE_URL`). Only public repos are readable; PR creation won't work.
+   (must match `BASE_URL`). The `public_repo` scope gives access to public repos only, including opening PRs against them.
 
    ```sh
    kubectl create secret generic secret-backstage-auth \
