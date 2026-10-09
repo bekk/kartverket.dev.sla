@@ -59,6 +59,9 @@ sikkerhetsmetrikker:
   clientId: ${SIKKERHETSMETRIKKER_CLIENT_ID}
 
 catalog:
+  locations:
+    - type: url
+      target: https://github.com/bekk/funksjonsregister.sla/tree/main/catalog-info.yaml
   providers:
     microsoftGraphOrg:
       default:
