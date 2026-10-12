@@ -62,6 +62,8 @@ catalog:
   locations:
     - type: url
       target: https://github.com/bekk/funksjonsregister.sla/tree/main/catalog-info.yaml
+    - type: url
+      target: https://github.com/bekk/app-metrics-exporter/tree/main/catalog-info.yaml
   providers:
     microsoftGraphOrg:
       default:
