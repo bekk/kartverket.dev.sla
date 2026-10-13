@@ -46,10 +46,8 @@ auth:
 regelrett:
   enable: true
   baseUrl: http://service-regelrett.ns-regelrett.svc.cluster.local
-  # TODO: no externally-reachable URL exists for regelrett yet (no Ingress on
-  # either app); reusing the in-cluster address as a placeholder for this
-  # required frontend-visibility field until one does.
-  url: http://service-regelrett.ns-regelrett.svc.cluster.local
+  # assumes a local port-forward:
+  url: http://localhost:8080
   clientId: ${REGELRETT_CLIENT_ID}
 
 
