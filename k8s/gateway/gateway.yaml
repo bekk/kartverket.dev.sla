@@ -1,0 +1,33 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: gateway-external
+  namespace: ns-gateway
+  labels:
+    app.kubernetes.io/part-of: gateway
+  annotations:
+    # Wildcard certificate for *.slo.fleks.dev, see k8s/README.md.
+    networking.gke.io/certmap: certmap-slo-fleks-dev
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  addresses:
+    - type: NamedAddress
+      value: ip-gateway-external
+  listeners:
+    - name: https
+      protocol: HTTPS
+      port: 443
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: [ns-backstage, ns-regelrett]
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same

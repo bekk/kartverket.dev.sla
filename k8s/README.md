@@ -106,17 +106,45 @@ Then smoke-test with a port-forward (matches the `BASE_URL=http://localhost:7007
 kubectl port-forward -n ns-backstage svc/service-backstage 7007:7007
 ```
 
-## Domain and static IP
+## Domain and Gateway
 
-`slo.fleks.dev` is delegated to the Cloud DNS zone `zone-slo-fleks-dev`. Backstage and Regelrett
-share the global static IP `ip-gateway-external`. Created by hand:
+Backstage and Regelrett are reached at `*.slo.fleks.dev` through a shared GKE Gateway (`k8s/gateway/`).
+Each app attaches its own `HTTPRoute`. 
 
-```sh
-gcloud dns managed-zones create zone-slo-fleks-dev --dns-name slo.fleks.dev. --visibility public
-gcloud compute addresses create ip-gateway-external --global
-gcloud dns record-sets create backstage.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
-gcloud dns record-sets create regelrett.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
-```
+The steps were run once by hand. The deploy workflow only
+applies `k8s/app/`. Rerun if something here is deleted or changed.
+
+1. DNS zone: `slo.fleks.dev` is delegated from `fleks.dev` to this zone, so we manage the records.
+
+   ```sh
+   gcloud dns managed-zones create zone-slo-fleks-dev --dns-name slo.fleks.dev. --visibility public
+   ```
+
+2. Static IP and records: one global IP for the Gateway, with each hostname pointing to it.
+
+   ```sh
+   gcloud compute addresses create ip-gateway-external --global
+   gcloud dns record-sets create backstage.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
+   gcloud dns record-sets create regelrett.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
+   ```
+
+3. Certificate: a Google managed wildcard for `*.slo.fleks.dev`, validated through a CNAME in our zone.
+   The certificate map is what the Gateway's `networking.gke.io/certmap` annotation points to.
+
+   ```sh
+   gcloud certificate-manager dns-authorizations create dnsauth-slo-fleks-dev --domain slo.fleks.dev
+   # add the CNAME shown by `dns-authorizations describe dnsauth-slo-fleks-dev` to zone-slo-fleks-dev
+   gcloud certificate-manager certificates create cert-slo-fleks-dev --domains '*.slo.fleks.dev' --dns-authorizations dnsauth-slo-fleks-dev
+   gcloud certificate-manager maps create certmap-slo-fleks-dev
+   gcloud certificate-manager maps entries create certmapentry-slo-fleks-dev --map certmap-slo-fleks-dev --certificates cert-slo-fleks-dev --hostname '*.slo.fleks.dev'
+   ```
+
+4. Gateway: creates the load balancer, plus an HTTP-to-HTTPS redirect.
+
+   ```sh
+   kubectl apply -f k8s/gateway/namespace.yaml
+   kubectl apply -f k8s/gateway/
+   ```
 
 ## NetworkPolicy
 
