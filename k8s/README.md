@@ -106,6 +106,18 @@ Then smoke-test with a port-forward (matches the `BASE_URL=http://localhost:7007
 kubectl port-forward -n ns-backstage svc/service-backstage 7007:7007
 ```
 
+## Domain and static IP
+
+`slo.fleks.dev` is delegated to the Cloud DNS zone `zone-slo-fleks-dev`. Backstage and Regelrett
+share the global static IP `ip-gateway-external`. Created by hand:
+
+```sh
+gcloud dns managed-zones create zone-slo-fleks-dev --dns-name slo.fleks.dev. --visibility public
+gcloud compute addresses create ip-gateway-external --global
+gcloud dns record-sets create backstage.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
+gcloud dns record-sets create regelrett.slo.fleks.dev. --zone zone-slo-fleks-dev --type A --rrdatas <IP>
+```
+
 ## NetworkPolicy
 
 `k8s/app/networkpolicy.yaml` is a plain default-deny-ingress on `ns-backstage` (no allow
