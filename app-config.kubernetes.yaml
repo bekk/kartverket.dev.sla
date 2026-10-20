@@ -1,6 +1,4 @@
-# Minimal overlay for a DB-only smoke test of the app in ns-backstage on GKE.
-# Loaded instead of app-config.production.yaml until auth/integrations are wired up:
-# --config app-config.yaml --config app-config.kubernetes.yaml
+# Overlay for the GKE deployment, loaded instead of app-config.production.yaml.
 app:
   baseUrl: ${BASE_URL}
 
@@ -18,17 +16,13 @@ backend:
       port: ${POSTGRES_PORT}
       user: ${POSTGRES_USER}
       password: ${POSTGRES_PASSWORD}
-    # The init SQL only creates a single "backstage" database/role (no CREATEDB
-    # privilege), so plugins must share it via per-plugin schemas rather than
-    # each trying to CREATE DATABASE.
+    # The "backstage" role can't CREATE DATABASE, so plugins share one database via schemas.
     pluginDivisionMode: schema
 
 cors:
   origin: ${BASE_URL}
 
-# security-metrics-backend and regelrett-schemas-backend both read auth.environment
-# and auth.providers.microsoft.<environment>.* eagerly at startup (not just for the
-# Microsoft sign-in flow), so this is required even before anyone signs in.
+# Also read at startup by security-metrics-backend and regelrett-schemas-backend, not just for sign-in.
 auth:
   environment: development
   providers:
@@ -46,8 +40,7 @@ auth:
 regelrett:
   enable: true
   baseUrl: http://service-regelrett.ns-regelrett.svc.cluster.local
-  # assumes a local port-forward:
-  url: http://localhost:8080
+  url: https://regelrett.slo.fleks.dev
   clientId: ${REGELRETT_CLIENT_ID}
 
 

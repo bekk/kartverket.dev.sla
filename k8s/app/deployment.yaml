@@ -17,22 +17,16 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        # gcr.io/distroless/nodejs24-debian13 has no image-level nonroot user
-        # (defaults to root), so runAsNonRoot alone makes kubelet refuse to
-        # start the container. Pin a UID explicitly instead of touching the
-        # Dockerfile — same approach as statefulset-backstage-postgres.
+        # The distroless image defaults to root, so runAsNonRoot needs an explicit UID.
         runAsUser: 65532
         runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: backstage
-          # TODO: replace with the built-and-pushed image, e.g.
-          # europe-north1-docker.pkg.dev/<project-id>/<repo>/backstage:<tag>
+          # Replaced with the built image at deploy.
           image: IMAGE_PLACEHOLDER
-          # Overrides the Dockerfile's default CMD args: skip
-          # app-config.production.yaml/app-config.runtime.yaml (they require
-          # Entra/Google/GitHub-App secrets not wired up yet for this smoke test).
+          # Skips app-config.production.yaml and app-config.runtime.yaml, whose secrets aren't set up here.
           args:
             - '--require'
             - './instrumentation.js'
@@ -45,10 +39,8 @@ spec:
             - name: http
               containerPort: 7007 
           env:
-            # TODO: point this at a real hostname (behind an Ingress) once one
-            # exists; until then this only works via `kubectl port-forward`.
             - name: BASE_URL
-              value: http://localhost:7007
+              value: https://backstage.slo.fleks.dev
           envFrom:
             - secretRef:
                 name: secret-backstage-db
