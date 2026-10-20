@@ -49,4 +49,9 @@ jobs:
           kubeconform-version: '0.8.0'
 
       - name: Schema-valider k8s-manifestene
-        run: kubeconform -strict -summary k8s/app k8s/db
+        # Skjemaer for CRD-er, låst til en commit.
+        run: >-
+          kubeconform -strict -summary
+          -schema-location default
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/501527ab9c40c827144c8f45945b25a023e344ce/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          k8s/app k8s/db k8s/gateway
